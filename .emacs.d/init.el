@@ -128,6 +128,39 @@
 ;;
 ;; el-getによるPackage管理
 ;;---------------------------------------------------
+;; google transelate
+(el-get-bundle google-translate)
+(require 'google-translate-default-ui)
+(defvar google-translate-english-chars "[:ascii:]’“”–"
+  "これらの文字が含まれているときは英語とみなす")
+(defun google-translate-enja-or-jaen (&optional string)
+  "regionか、現在のセンテンスを言語自動判別でGoogle翻訳する。"
+  (interactive)
+  (setq string
+        (cond ((stringp string) string)
+              (current-prefix-arg
+               (read-string "Google Translate: "))
+              ((use-region-p)
+               (buffer-substring (region-beginning) (region-end)))
+              (t
+               (save-excursion
+                 (let (s)
+                   (forward-char 1)
+                   (backward-sentence)
+                   (setq s (point))
+                   (forward-sentence)
+                   (buffer-substring s (point)))))))
+  (let* ((asciip (string-match
+                  (format "\\`[%s]+\\'" google-translate-english-chars)
+                  string)))
+    (run-at-time 0.1 nil 'deactivate-mark)
+    (google-translate-translate
+     (if asciip "en" "ja")
+     (if asciip "ja" "en")
+     string)))
+(global-set-key (kbd "C-c t") 'google-translate-enja-or-jaen)
+
+
 ;; anzu設定
 (el-get-bundle anzu)
 (global-anzu-mode +1)
@@ -222,3 +255,36 @@
 ;; twittering mode
 (el-get-bundle twittering-mode)
 (setq twittering-use-master-password t)
+
+;;バックアップファイルの作成場所をシステムのTempにする
+(setq backup-directory-alist
+      `((".*" . ,temporary-file-directory)))
+;;オートセーブファイルの作成場所をシステムのTempディレクトリに変更する
+(setq auto-save-file-name-transforms
+      `((".*" ,temporary-file-directory t)))
+
+;; quickrun
+(el-get-bundle quickrun)
+(global-set-key (kbd "<f5>") 'quickrun)
+(global-set-key (kbd "C-<f5>") 'quickrun-with-arg)
+(global-set-key (kbd "M-<f5>") 'quickrun-compile-only)
+
+;; popwin
+(el-get-bundle popwin)
+(require 'popwin)
+(setq display-buffer-function 'popwin:display-buffer)
+(setq popwin:popup-window-position 'bottom)
+(push '("*quickrun*") popwin:special-display-config)
+(push '("*Google Translate*") popwin:special-display-config)
+
+;; yatex-mode
+;; run yatex mode when open .tex file
+(el-get-bundle yatex)
+(setq auto-mode-alist
+      (cons (cons "\\.tex$" 'yatex-mode) auto-mode-alist))
+(autoload 'yatex-mode "yatex" "Yet Another LaTeX mode" t)
+(setq YaTeX-prefix "\C-t")
+(setq tex-command "platex")
+(setq dviprint-command-format "dvipdfmx %s")
+;; use utf-8 on yatex mode
+(setq YaTeX-kanji-code 4)
